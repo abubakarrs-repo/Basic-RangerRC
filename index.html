@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RangerOS</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #333;
+            color: #fff;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        .title {
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            color: #FFD65C;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .controls {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+        .control-group {
+            flex: 1;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .control-group.right {
+            justify-content: center;
+            min-height: 300px;
+        }
+        .control {
+            background-color: #444;
+            padding: 20px;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .slider {
+            width: 80%;
+            margin: 10px 0;
+            -webkit-appearance: none;
+            height: 15px;
+            border-radius: 7.5px;
+            background: #666;
+            outline: none;
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: #FFD65C;
+            cursor: pointer;
+        }
+        .button-container {
+            width: 100%;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .button {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background-color: #FFD65C;
+            color: #333;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .button:hover {
+            background-color: #FFE584;
+            transform: scale(1.05);
+        }
+        .value-display {
+            font-size: 1.2em;
+            margin-top: 5px;
+        }
+
+        /* Landscape mode for mobile devices */
+        @media screen and (max-width: 900px) and (orientation: landscape) {
+            body {
+                padding: 10px;
+            }
+            .title {
+                font-size: 1.5em;
+                margin-bottom: 15px;
+            }
+            .controls {
+                gap: 10px;
+            }
+            .control-group {
+                max-width: none;
+            }
+            .control {
+                padding: 10px;
+            }
+            .control-group.right {
+                min-height: 200px;
+            }
+            .button-container {
+                margin: 10px 0;
+            }
+            .button {
+                padding: 10px 20px;
+                font-size: 1em;
+            }
+            .value-display {
+                font-size: 1em;
+                margin-top: 3px;
+            }
+            .slider {
+                height: 12px;
+            }
+            .slider::-webkit-slider-thumb {
+                width: 20px;
+                height: 20px;
+            }
+        }
+
+        /* Extra small devices in landscape */
+        @media screen and (max-height: 450px) and (orientation: landscape) {
+            .title {
+                font-size: 1.2em;
+                margin-bottom: 10px;
+            }
+            .controls {
+                gap: 5px;
+            }
+            .control {
+                padding: 5px;
+            }
+            .control-group.right {
+                min-height: 150px;
+            }
+            .button {
+                padding: 8px 15px;
+                font-size: 0.9em;
+            }
+            .value-display {
+                font-size: 0.9em;
+            }
+            .button-container {
+                margin: 5px 0;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1 class="title">RangerOS</h1>
+    <div class="controls">
+        <div class="control-group">
+            <div class="control">
+                <label for="yaw">Yaw Control</label>
+                <input type="range" id="yaw" class="slider" min="-100" max="100" value="0">
+                <div class="value-display">Value: <span id="yawValue">0</span></div>
+            </div>
+            <div class="control">
+                <label for="roll">Roll Control</label>
+                <input type="range" id="roll" class="slider" min="-100" max="100" value="0">
+                <div class="value-display">Value: <span id="rollValue">0</span></div>
+            </div>
+        </div>
+        <div class="control-group right">
+            <div class="control">
+                <label for="throttle">Throttle</label>
+                <input type="range" id="throttle" class="slider" min="0" max="100" value="0">
+                <div class="value-display">Value: <span id="throttleValue">0</span>%</div>
+            </div>
+        </div>
+    </div>
+    <div class="button-container">
+        <button class="button" onclick="handleTransition(true)">Transition to Horizontal</button>
+        <button class="button" onclick="handleTransition(false)">Transition to Vertical</button>
+    </div>
+    <script>
+        var gateway = `ws://${window.location.hostname}/ws`;
+        var websocket;
+        window.addEventListener('load', onLoad);
+        function onLoad(event) {
+            initWebSocket();
+        }
+        function initWebSocket() {
+            console.log('Trying to open a WebSocket connection...');
+            websocket = new WebSocket(gateway);
+            websocket.onopen = onOpen;
+            websocket.onclose = onClose;
+            websocket.onmessage = onMessage;
+        }
+        function onOpen(event) {
+            console.log('Connection opened');
+        }
+        function onClose(event) {
+            console.log('Connection closed');
+            setTimeout(initWebSocket, 2000);
+        }
+        function onMessage(event) {
+            // Handle incoming messages if needed
+        }
+        function updateValue(control, value) {
+            document.getElementById(control + "Value").textContent = value;
+            websocket.send(control + ":" + value);
+        }
+        function handleTransition(toHorizontal) {
+            websocket.send("transition:" + (toHorizontal ? "1" : "0"));
+        }
+        // Add event listeners for sliders
+        document.getElementById('yaw').addEventListener('input', function() {
+            updateValue('yaw', this.value);
+        });
+        document.getElementById('roll').addEventListener('input', function() {
+            updateValue('roll', this.value);
+        });
+        document.getElementById('throttle').addEventListener('input', function() {
+            updateValue('throttle', this.value);
+        });
+        // Return to center for yaw and roll when released
+        document.getElementById('yaw').addEventListener('mouseup', function() {
+            this.value = 0;
+            updateValue('yaw', 0);
+        });
+        document.getElementById('roll').addEventListener('mouseup', function() {
+            this.value = 0;
+            updateValue('roll', 0);
+        });
+        // Touch events for mobile devices
+        document.getElementById('yaw').addEventListener('touchend', function() {
+            this.value = 0;
+            updateValue('yaw', 0);
+        });
+        document.getElementById('roll').addEventListener('touchend', function() {
+            this.value = 0;
+            updateValue('roll', 0);
+        });
+    </script>
+</body>
+</html>
